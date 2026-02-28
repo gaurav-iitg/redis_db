@@ -1,6 +1,7 @@
 package resp
 
 import (
+	"bytes"
 	"strconv"
 )
 
@@ -28,15 +29,18 @@ func encodeBulkString(v BulkString) ([]byte, error) {
 
 func encodeArray(v Array) ([]byte, error) {
 	// Array format: *<count>\r\n<element1><element2>...<elementN>
-	resp := "*" + strconv.FormatInt(v.Count, 10) + "\r\n"
+	var buf bytes.Buffer
+	buf.WriteString("*")
+	buf.WriteString(strconv.FormatInt(v.Count, 10))
+	buf.WriteString("\r\n")
 	for _, element := range v.Elements {
 		encodedElement, err := EncodeResp(element)
 		if err != nil {
 			return nil, err
 		}
-		resp += string(encodedElement)
+		buf.Write(encodedElement)
 	}
-	return []byte(resp), nil
+	return buf.Bytes(), nil
 }
 
 func encodeSimpleString(v SimpleString) ([]byte, error) {

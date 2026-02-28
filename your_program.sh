@@ -15,7 +15,7 @@ set -e # Exit early if any commands fail
 (
   cd "$(dirname "$0")" # Ensure compile steps are run within the repository directory
   mkdir -p build
-  go build -o build/redis-server app/*.go
+  go build -o build/redis-server app/cmd/server/*.go
 )
 
 # Copied from .codecrafters/run.sh

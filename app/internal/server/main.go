@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"bufio"
@@ -7,11 +7,11 @@ import (
 	"net"
 	"os"
 
-	"github.com/codecrafters-io/redis-starter-go/app/internal/dispatcher"
-	"github.com/codecrafters-io/redis-starter-go/app/internal/resp"
+	"github.com/redis-go/app/internal/dispatcher"
+	"github.com/redis-go/app/internal/resp"
 )
 
-func handleConn(c net.Conn) {
+func (s *Server) handleConn(c net.Conn) {
 	defer c.Close()
 
 	reader := bufio.NewReader(c)
@@ -25,7 +25,7 @@ func handleConn(c net.Conn) {
 			return
 		}
 
-		response, err := dispatcher.Execute(cmd)
+		response, err := s.dispatcher.Execute(cmd)
 		if err != nil {
 			fmt.Println("Error handling response:", err)
 			return
@@ -44,10 +44,20 @@ func handleConn(c net.Conn) {
 	}
 }
 
-func main() {
-	l, err := net.Listen("tcp", "0.0.0.0:6379")
+type Server struct {
+	addr       string
+	dispatcher dispatcher.Dispatcher
+}
+
+func New(addr string) *Server {
+	dispatcher := dispatcher.New()
+	return &Server{addr: addr, dispatcher: *dispatcher}
+}
+
+func (s *Server) Start() {
+	l, err := net.Listen("tcp", s.addr)
 	if err != nil {
-		fmt.Printf("Failed to bind to port 6379: %v\n", err)
+		fmt.Printf("Failed to bind to port %s: %v\n", s.addr, err)
 		os.Exit(1)
 	}
 
@@ -57,6 +67,6 @@ func main() {
 			fmt.Println("Error accepting connection:", err)
 			os.Exit(1)
 		}
-		go handleConn(conn)
+		go s.handleConn(conn)
 	}
 }
