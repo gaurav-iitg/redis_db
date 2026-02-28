@@ -18,13 +18,28 @@ func main() {
 	//
 	l, err := net.Listen("tcp", "0.0.0.0:6379")
 	if err != nil {
-		fmt.Println("Failed to bind to port 6379")
+		// include the error string so we know exactly what went wrong
+		fmt.Printf("Failed to bind to port 6379: %v\n", err)
 		os.Exit(1)
 	}
-	conn, err := l.Accept()
-	conn.Write([]byte("+PONG\r\n"))
-	if err != nil {
-		fmt.Println("Error accepting connection: ", err.Error())
-		os.Exit(1)
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println("Error accepting connection: ", err.Error())
+			os.Exit(1)
+		}
+		go func(c net.Conn) {
+			defer c.Close()
+			buf := make([]byte, 1024)
+			for {
+				n, err := c.Read(buf)
+				if err != nil {
+					return
+				}
+				if n > 0 {
+					c.Write([]byte("+PONG\r\n"))
+				}
+			}
+		}(conn)
 	}
 }

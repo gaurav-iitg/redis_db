@@ -1,0 +1,10 @@
+# Build artifacts
+build/
+bin/
+
+# IDE
+.vscode/
+.idea/
+
+# Debug binaries
+__debug_bin*
