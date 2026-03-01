@@ -1,7 +1,9 @@
 package dispatcher
 
 import (
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/redis-go/app/internal/datastore"
 	"github.com/redis-go/app/internal/resp"
@@ -23,11 +25,43 @@ func (d *Dispatcher) handlePing(args [][]byte) resp.RESPType {
 type CommandFunc func(d *Dispatcher, args [][]byte) resp.RESPType
 
 func (d *Dispatcher) handleSet(args [][]byte) resp.RESPType {
-	if len(args) != 2 {
+	if len(args) < 2 {
 		return resp.SimpleError{Message: "ERR wrong number of arguments for 'set'"}
 	}
 
-	d.dataStore.Set(string(args[0]), string(args[1]))
+	var ttl *time.Duration
+
+	if len(args) > 2 {
+		if len(args) != 4 {
+			return resp.SimpleError{Message: "ERR syntax error"}
+		}
+
+		option := strings.ToUpper(string(args[2]))
+
+		value, err := strconv.ParseInt(string(args[3]), 10, 64)
+		if err != nil || value <= 0 {
+			return resp.SimpleError{Message: "ERR invalid expire time"}
+		}
+
+		var duration time.Duration
+
+		switch option {
+		case "EX":
+			duration = time.Duration(value) * time.Second
+		case "PX":
+			duration = time.Duration(value) * time.Millisecond
+		default:
+			return resp.SimpleError{Message: "ERR syntax error"}
+		}
+
+		ttl = &duration
+	}
+
+	d.dataStore.Set(datastore.SetArgs{
+		Key:   string(args[0]),
+		Value: string(args[1]),
+		Ex:    ttl,
+	})
 	return resp.SimpleString{Value: "OK"}
 }
 

@@ -24,7 +24,17 @@ func EncodeResp(v RESPType) ([]byte, error) {
 
 func encodeBulkString(v BulkString) ([]byte, error) {
 	// Bulk string format: $<length>\r\n<data>\r\n
-	return []byte("$" + strconv.FormatInt(v.Length, 10) + "\r\n" + string(v.Value) + "\r\n"), nil
+	var buf bytes.Buffer
+	if v.Value == nil {
+		buf.WriteString("$-1\r\n")
+	} else {
+		buf.WriteString("$")
+		buf.WriteString(strconv.FormatInt(v.Length, 10))
+		buf.WriteString("\r\n")
+		buf.Write(v.Value)
+		buf.WriteString("\r\n")
+	}
+	return buf.Bytes(), nil
 }
 
 func encodeArray(v Array) ([]byte, error) {
